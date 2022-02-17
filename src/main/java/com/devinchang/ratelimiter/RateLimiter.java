@@ -5,6 +5,9 @@ import com.devinchang.ratelimiter.exception.InternalErrorException;
 import com.devinchang.ratelimiter.rule.ApiLimit;
 import com.devinchang.ratelimiter.rule.RateLimitRule;
 import com.devinchang.ratelimiter.rule.RuleConfig;
+import com.devinchang.ratelimiter.rule.TrieRateLimitRule;
+import com.devinchang.ratelimiter.rule.datasource.FileRuleConfigSource;
+import com.devinchang.ratelimiter.rule.datasource.RuleConfigSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -19,24 +22,10 @@ public class RateLimiter {
     private ConcurrentHashMap<String, RateLimitAlg>  counters = new ConcurrentHashMap<>();
     private RateLimitRule rule;
 
-    RateLimiter() {
-        InputStream in = null;
-        RuleConfig ruleConfig = null;
-
-        try {
-            in = this.getClass().getResourceAsStream("/tatelimiter-rule.yaml");
-            if(in != null) {
-                Yaml yaml = new Yaml();
-                ruleConfig = yaml.loadAs(in, RuleConfig.class);
-            }
-        } finally {
-            try {
-                in.close();
-            } catch (IOException e) {
-                log.error("close file error:{}", e);
-            }
-        }
-        this.rule = new RateLimitRule(ruleConfig);
+    public RateLimiter() {
+        RuleConfigSource configSource = new FileRuleConfigSource();
+        RuleConfig ruleConfig = configSource.load();
+        this.rule = new TrieRateLimitRule(ruleConfig);
     }
 
     public boolean limit(String appid, String url) throws InternalErrorException {
